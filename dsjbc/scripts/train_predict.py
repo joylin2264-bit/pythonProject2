@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-大数据编程课程设计：基于 LSTM / GRU 的股息预测模型训练与可视化
-"""
 import pandas as pd
 import numpy as np
 import torch
@@ -14,11 +11,11 @@ import os
 plt.rcParams['font.sans-serif'] = ['SimHei']
 plt.rcParams['axes.unicode_minus'] = False
 
-# 1. 检查硬件配置（自动调用你的 RTX 4060 GPU）
+# 检查硬件配置（自动调用 RTX 4060 GPU）
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"当前硬件设备: {device}")
 
-# 2. 读取上一步 Spark 算好的高维特征数据
+# 读取前面 Spark 算好的高维特征数据
 data_path = "../data/AAPL_processed_features.csv"
 df = pd.read_csv(data_path)
 
@@ -32,7 +29,7 @@ scaler_targ = MinMaxScaler()
 features_scaled = scaler_feat.fit_transform(features)
 target_scaled = scaler_targ.fit_transform(target)
 
-# 3. 构造滑动时间窗口（用过去 10 天的特征预测第 11 天的股价）
+# 构造滑动时间窗口（用过去 10 天的特征预测第 11 天的股价）
 def create_sequences(features, target, seq_length=10):
     X, y = [], []
     for i in range(len(features) - seq_length):
@@ -47,7 +44,7 @@ split = int(len(X) * 0.8)
 X_train, X_test = torch.tensor(X[:split], dtype=torch.float32).to(device), torch.tensor(X[split:], dtype=torch.float32).to(device)
 y_train, y_test = torch.tensor(y[:split], dtype=torch.float32).to(device), torch.tensor(y[split:], dtype=torch.float32).to(device)
 
-# 4. 定义全局网络超参数
+# 定义全局网络超参数
 input_size = 3    # 3个输入特征
 hidden_size = 64  # 隐藏层神经元数量
 num_layers = 2    # 2层网络叠加
@@ -63,7 +60,7 @@ class LSTMModel(nn.Module):
         out, _ = self.lstm(x)
         return self.fc(out[:, -1, :])
 
-# 定义 GRU 模型架构（对比实验）
+# 定义 GRU 模型架构
 class GRUModel(nn.Module):
     def __init__(self):
         super(GRUModel, self).__init__()
@@ -73,7 +70,7 @@ class GRUModel(nn.Module):
         out, _ = self.gru(x)
         return self.fc(out[:, -1, :])
 
-# 5. 训练函数
+# 训练函数
 def train_model(model, epochs=30):
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
@@ -91,7 +88,7 @@ lstm_model = train_model(LSTMModel().to(device))
 print("开始并行训练 GRU 深度学习网络...")
 gru_model = train_model(GRUModel().to(device))
 
-# 6. 模型预测与逆标准化还原
+# 模型预测与逆标准化还原
 lstm_model.eval()
 gru_model.eval()
 with torch.no_grad():
@@ -110,7 +107,7 @@ print(f"\n实验评估结果：")
 print(f"LSTM 模型的预测 RMSE 指标: {lstm_rmse:.4f}")
 print(f"GRU 模型的预测 RMSE 指标:  {gru_rmse:.4f}")
 
-# 7. 绘制高阶数据可视化曲线
+# 绘制高阶数据可视化曲线
 print("\n正在生成多模型预测对比可视化图表...")
 plt.figure(figsize=(12, 6))
 plt.plot(actual_prices, label="真实市场价格 (Actual Price)", color='black', linewidth=1.5)
